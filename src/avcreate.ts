@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import * as fs from 'fs';
+import * as path from 'path';
 import { Question, Answers } from 'inquirer';
 import * as readline from 'readline';
 import inquirer = require('inquirer');
@@ -83,6 +84,12 @@ let questions: Question[] =
 		message: "Does your gadget start other gadgets?",
 		default: false
 	},
+	{
+		type: "confirm",
+		name: "wantsVSCode",
+		message: "Do you want to debug with VS Code?",
+		default: true
+	},
 ];
 
 let templateGadgetManifest:AvGadgetManifest =
@@ -101,6 +108,7 @@ let templateTsConfig: any =
 		"module": "commonjs",
 		"lib": ["es6", "es2015", "dom"],
 		"declaration": true,
+		"jsx": "react",
 		"outDir": "dist",
 		"rootDir": "src",
 		"strict": true,
@@ -214,6 +222,222 @@ let templateHtml=
 </html>
 `
 
+let templateWebPackConfig =
+`
+const path = require('path');
+var HtmlWebpackPlugin = require( 'html-webpack-plugin' );
+const CopyPlugin = require('copy-webpack-plugin');
+
+module.exports = 
+[
+	{
+		mode: "development",
+		devtool: "inline-source-map",
+
+		entry: './src/main.tsx',
+
+		output:
+		{
+			filename: 'index.js',
+			path: path.resolve( __dirname, './dist' ),
+		},
+
+		plugins:
+		[
+			new HtmlWebpackPlugin(
+				{
+					hash: true,
+					filename: "./index.html",
+					template: "./src/index.html"
+				}
+			),
+			new CopyPlugin(
+				[
+					{ from: './src/styles.css', to: 'styles.css' },
+					{ from: './src/gadget_manifest.json', to: 'gadget_manifest.json' },
+					{ from: './src/models/placeholder.glb', to: 'models/placeholder.glb' },
+				]
+				),
+		],
+		
+		module: 
+		{
+			rules:
+			[
+				{ 
+					test: /\.tsx?$/,
+					use: 'ts-loader',
+					exclude: /node_modules/
+				},
+				{
+					test: /\.css$/,
+					use: 
+					[
+						'style-loader',
+						'css-loader'
+					]
+				},
+				{
+					test: /\.(png|svg|jpg|gif)$/,
+					use: 
+					[
+						'file-loader'
+					]
+				}
+					
+			]
+		},
+	}
+];
+
+`;
+
+
+let templateLaunchJson =
+`{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "chrome",
+			"request": "attach",
+			"name": "Attach to aardvark_renderer",
+			"sourceMaps": true,
+			//"trace":"verbose",
+			"port": 8042,
+			"webRoot": "\${workspaceFolder}",
+		},
+	]
+}`;
+
+let templateMainTsx=
+`import * as React from 'react';
+import  * as ReactDOM from 'react-dom';
+
+import bind from 'bind-decorator';
+
+import { AvGadget, AvTransform, AvPanel, AvGrabbable, HighlightType, GrabResponse, AvSphereHandle } from '@aardvarkxr/aardvark-react';
+import { EndpointAddr, AvGrabEvent, endpointAddrToString } from '@aardvarkxr/aardvark-shared';
+
+
+interface TestPanelState
+{
+	count: number;
+	grabbableHighlight: HighlightType;
+}
+
+interface TestSettings
+{
+	count: number;
+}
+
+class TestPanel extends React.Component< {}, TestPanelState >
+{
+	private m_panelId?: EndpointAddr;
+
+	constructor( props: any )
+	{
+		super( props );
+		this.state = 
+		{ 
+			count: 0,
+			grabbableHighlight: HighlightType.None,
+		};
+
+		AvGadget.instance().registerForSettings( this.onSettingsReceived );
+	}
+
+	@bind public incrementCount()
+	{
+		this.setState( { count: this.state.count + 1 } );
+
+		let newSettings: TestSettings = { count: this.state.count + 1 };
+		AvGadget.instance().saveSettings( newSettings );
+	}
+
+	@bind public onHighlightGrabbable( highlight: HighlightType )
+	{
+		this.setState( { grabbableHighlight: highlight } );
+	}
+
+	@bind public onGrabRequest( grabRequest: AvGrabEvent ): Promise< GrabResponse >
+	{
+		// this is totally unnecessary, but a good test of the plumbing.
+		let response: GrabResponse =
+		{
+			allowed: true,
+		};
+		return Promise.resolve( response );
+	}
+
+	@bind public onSettingsReceived( settings: TestSettings )
+	{
+		if( settings )
+		{
+			this.setState( { count: settings.count } );
+		}
+	}
+
+	public render()
+	{
+		let sDivClasses:string;
+		let scale = 0.4;
+		switch( this.state.grabbableHighlight )
+		{
+			default:
+			case HighlightType.None:
+				sDivClasses = "FullPage NoGrabHighlight";
+				break;
+
+			case HighlightType.InRange:
+				sDivClasses = "FullPage InRangeHighlight";
+				break;
+
+			case HighlightType.Grabbed:
+				sDivClasses = "FullPage GrabbedHighlight";
+				break;
+
+			case HighlightType.InHookRange:
+				sDivClasses = "FullPage GrabbedHighlight";
+				scale = 0.05;
+				break;
+		
+		}
+
+		return (
+			<div className={ sDivClasses } >
+				<div>
+					<AvGrabbable updateHighlight={ this.onHighlightGrabbable }
+						onGrabRequest={ this.onGrabRequest }
+						dropOnHooks={ true }>
+						<AvSphereHandle radius={0.1} />
+						
+						<AvTransform uniformScale={ scale }>
+							<AvPanel interactive={true}
+								onIdAssigned={ (id: EndpointAddr) => { this.m_panelId = id } }/>
+						</AvTransform>
+					</AvGrabbable>
+				</div>
+				<div className="Label">Count: { this.state.count }</div>
+				<div className="Button" onMouseDown={ this.incrementCount }>
+					Click Me!
+					</div> 
+
+				{ this.m_panelId && 
+					<div>
+						My ID is { endpointAddrToString( this.m_panelId as EndpointAddr ) }
+					</div>
+				}
+			</div>
+		)
+	}
+}
+
+ReactDOM.render( <TestPanel/>, document.getElementById( "root" ) );
+`;
+
 interface MyAnswers
 {
 	packageName: string;
@@ -222,6 +446,7 @@ interface MyAnswers
 	width?: number;
 	height?: number;
 	startsGadgets: boolean;
+	wantsVSCode: boolean;
 }
 
 async function main()
@@ -279,12 +504,53 @@ async function main()
 		console.log( "Added src/styles.css" );
 	}
 
+	if( !fs.existsSync( "./src/main.tsx" ) )
+	{
+		fs.writeFileSync( "./src/main.tsx", templateMainTsx );
+		console.log( "Added src/main.tsx" );
+	}
+
 	if( !fs.existsSync( "./src/index.html" ) )
 	{
 		let indexHtml = templateHtml.replace( "GADGET_NAME", answers.gadgetName );
 		fs.writeFileSync( "./src/index.html", indexHtml );
 		console.log( "Added src/index.html" );
 	}
+
+	if( !fs.existsSync( "./src/models" ) )
+	{
+		fs.mkdirSync( "./src/models" );
+		console.log( "Created ./src/models" );
+	}
+
+	if( !fs.existsSync( "./src/models/placeholder.glb" ) )
+	{
+		fs.copyFileSync( path.resolve( __dirname, "../src/placeholder.glb" ),
+			"./src/models/placeholder.glb" )
+		console.log( "Added src/models/placeholder.glb" );
+	}
+
+	if( !fs.existsSync( "./webpack.config.js" ) )
+	{
+		fs.writeFileSync( "./webpack.config.js", templateWebPackConfig );
+		console.log( "Added webpack.config.js" );
+	}
+
+	if( answers.wantsVSCode )
+	{
+		if( !fs.existsSync( "./.vscode" ) )
+		{
+			fs.mkdirSync( "./.vscode" );
+			console.log( "Created ./.vscode" );
+		}
+	
+		if( !fs.existsSync( "./.vscode/launch.json" ) )
+		{
+			fs.writeFileSync( "./.vscode/launch.json", templateLaunchJson );
+			console.log( "Added .vscode/launch.json" );
+		}
+	}
+
 }
 
 main();

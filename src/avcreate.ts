@@ -147,6 +147,7 @@ let templatePackageJson: any =
 	  "html-webpack-plugin": "^3.2.0",
 	  "mini-css-extract-plugin": "^0.7.0",
 	  "npm": "^6.12.0",
+	  "source-map-loader": "^0.2.4",
 	  "ts-loader": "^6.0.4",
 	  "tslib": "^1.10.0",
 	  "typescript": "^3.5.2",
@@ -154,8 +155,8 @@ let templatePackageJson: any =
 	  "webpack-cli": "^3.3.6"
 	},
 	"dependencies": {
-	  "@aardvarkxr/aardvark-react": "^0.0.4",
-	  "@aardvarkxr/aardvark-shared": "^0.0.4",
+	  "@aardvarkxr/aardvark-react": "^0.0.5",
+	  "@aardvarkxr/aardvark-shared": "^0.0.7",
 	  "bind-decorator": "^1.0.11",
 	  "react": "^16.8.6",
 	  "react-dom": "^16.8.6"
@@ -283,6 +284,12 @@ module.exports =
 					[
 						'file-loader'
 					]
+				},
+				{
+					test: /\.js$/,
+					use: ['source-map-loader'],
+					enforce: 'pre',
+					exclude: [ /@tlaukkan/ ] // TSM has source maps but not source
 				}
 					
 			]
@@ -307,7 +314,21 @@ let templateLaunchJson =
 			"sourceMaps": true,
 			//"trace":"verbose",
 			"port": 8042,
-			"webRoot": "\${workspaceFolder}",
+			"webRoot":"\${workspaceFolder}",
+			"sourceMapPathOverrides": {
+				// If you have local Git clones of @aardvarkxr/aardvark-react or @aardvarkxr/aardvark-shared,
+				// you can use those repos as your source of these two packages with "npm install <path>" for each one.
+				// But if you do that, source maps will get lost, so you also need to set the environment variable
+				// "AV_SHARED_SRC=C:/some/path/aardvark-shared" so the following rules can make the source maps work 
+				// through the sym linked packages. NOTE THE FORWARD SLASHES!
+				"webpack:///../aardvark-react/*": "\${env:AV_REACT_SRC}/*",
+				"webpack:///../aardvark-shared/*": "\${env:AV_SHARED_SRC}/*",
+				"webpack:///./~/*": "\${webRoot}/node_modules/*",       // Example: "webpack:///./~/querystring/index.js" -> "/Users/me/project/node_modules/querystring/index.js"
+				"webpack:///./*":   "\${webRoot}/*",                    // Example: "webpack:///./src/app.js" -> "/Users/me/project/src/app.js",
+				"webpack:///*":     "*",                               // Example: "webpack:///project/app.ts" -> "/project/app.ts"
+				"webpack:///src/*": "\${webRoot}/*",                    // Example: "webpack:///src/app.js" -> "/Users/me/project/app.js"
+				"meteor://💻app/*": "\${webRoot}/*"                    // Example: "meteor://💻app/main.ts" -> "/Users/me/project/main.ts"
+			}
 		},
 	]
 }`;

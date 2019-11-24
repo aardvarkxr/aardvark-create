@@ -1,18 +1,18 @@
 {
   "name": "@aardvarkxr/create",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Gadget project create script for Aardvark",
+  "repository": "https://github.com/aardvarkxr/aardvark-create.git",
   "main": "./lib/avcreate.js",
   "bin": {
     "avcreate": "./lib/avcreate.js"
   },
-  "files": 
-  [
+  "files": [
     "lib",
     "src/placeholder.glb"
   ],
   "dependencies": {
-    "@aardvarkxr/aardvark-shared": "0.0.4",
+    "@aardvarkxr/aardvark-shared": "0.0.7",
     "inquirer": "^7.0.0",
     "path": "^0.12.7",
     "pkginfo": "^0.4.1",

@@ -8,14 +8,16 @@ import inquirer = require('inquirer');
 import {AvGadgetManifest} from '@aardvarkxr/aardvark-shared';
 import ValidatePackageName = require( 'validate-npm-package-name' );
 
-let pkginfo = require( 'pkginfo' )( module, 'version' );
+let pkginfo = require( 'pkginfo' )( module, 'version', 'dependencies' );
 
 const rl = readline.createInterface( { input: process.stdin, output: process.stdout } );
 
 let showHelp = true;
 
-console.log( `Aardvark gadget project create script (${ pkginfo.version })` );
+console.log( `Aardvark gadget project create script (${ module.exports.version })` );
 
+let avreactVersion = module.exports.dependencies["@aardvarkxr/aardvark-react" ];
+let avsharedVersion = module.exports.dependencies["@aardvarkxr/aardvark-shared" ];
 
 let questions: Question[] =
 [
@@ -98,7 +100,8 @@ let templateGadgetManifest:AvGadgetManifest =
 	"permissions" : [ "scenegraph" ],
 	width: 1024,
 	height: 1024,
-	"model" : "models/placeholder.glb"
+	"model" : "models/placeholder.glb",
+	startAutomatically: false,
 }
 
 let templateTsConfig: any =
@@ -155,8 +158,8 @@ let templatePackageJson: any =
 	  "webpack-cli": "^3.3.6"
 	},
 	"dependencies": {
-	  "@aardvarkxr/aardvark-react": "^0.0.5",
-	  "@aardvarkxr/aardvark-shared": "^0.0.7",
+	  "@aardvarkxr/aardvark-react": avreactVersion,
+	  "@aardvarkxr/aardvark-shared": avsharedVersion,
 	  "bind-decorator": "^1.0.11",
 	  "react": "^16.8.6",
 	  "react-dom": "^16.8.6"
@@ -474,6 +477,8 @@ async function main()
 {
 	let answers = await inquirer.prompt( questions ) as MyAnswers;
 	console.log( "Your answers: ", answers );
+
+	console.log( `Using @aardvarkxr/aardvark-react@${ avreactVersion } and @aardvarkxr/aardvark-shared@${ avsharedVersion }` );
 
 	let gadgetManifest = Object.assign( {}, templateGadgetManifest );
 	gadgetManifest.name = answers.gadgetName;

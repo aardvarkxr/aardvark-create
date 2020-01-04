@@ -287,16 +287,17 @@ module.exports =
 					[
 						'file-loader'
 					]
-				},
-				{
-					test: /\.js$/,
-					use: ['source-map-loader'],
-					enforce: 'pre',
-					exclude: [ /@tlaukkan/ ] // TSM has source maps but not source
 				}
 					
 			]
 		},
+
+		resolve:
+		{
+			modules:[ path.resolve( __dirname, 'node_modules' ) ],
+			extensions: [ '.ts', '.tsx', '.js' ]
+		},
+	
 	}
 ];
 
@@ -407,7 +408,7 @@ class TestPanel extends React.Component< {}, TestPanelState >
 	public render()
 	{
 		let sDivClasses:string;
-		let scale = 0.4;
+		let scale = 0.2;
 		switch( this.state.grabbableHighlight )
 		{
 			default:
@@ -425,7 +426,6 @@ class TestPanel extends React.Component< {}, TestPanelState >
 
 			case HighlightType.InHookRange:
 				sDivClasses = "FullPage GrabbedHighlight";
-				scale = 0.05;
 				break;
 		
 		}

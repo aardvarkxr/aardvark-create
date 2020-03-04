@@ -5,7 +5,7 @@ import * as path from 'path';
 import { Question, Answers } from 'inquirer';
 import * as readline from 'readline';
 import inquirer = require('inquirer');
-import {AvGadgetManifest} from '@aardvarkxr/aardvark-shared';
+import {AvGadgetManifest, Permission} from '@aardvarkxr/aardvark-shared';
 import ValidatePackageName = require( 'validate-npm-package-name' );
 
 let pkginfo = require( 'pkginfo' )( module, 'version', 'dependencies' );
@@ -88,6 +88,12 @@ let questions: Question[] =
 	},
 	{
 		type: "confirm",
+		name: "joinsChambers",
+		message: "Does your gadget join multi-user chambers?",
+		default: false
+	},
+	{
+		type: "confirm",
 		name: "wantsVSCode",
 		message: "Do you want to debug with VS Code?",
 		default: true
@@ -97,7 +103,7 @@ let questions: Question[] =
 let templateGadgetManifest:AvGadgetManifest =
 {
 	"name" : "Test Panel",
-	"permissions" : [ "scenegraph" ],
+	"permissions" : [ Permission.SceneGraph ],
 	width: 1024,
 	height: 1024,
 	"model" : "models/placeholder.glb",
@@ -470,6 +476,7 @@ interface MyAnswers
 	width?: number;
 	height?: number;
 	startsGadgets: boolean;
+	joinsChambers: boolean;
 	wantsVSCode: boolean;
 }
 
@@ -494,7 +501,11 @@ async function main()
 	}
 	if( answers.startsGadgets )
 	{
-		gadgetManifest.permissions.push( "master" );
+		gadgetManifest.permissions.push( Permission.Master );
+	}
+	if( answers.joinsChambers )
+	{
+		gadgetManifest.permissions.push( Permission.Chamber );
 	}
 
 	if( !fs.existsSync( "./src" ) )

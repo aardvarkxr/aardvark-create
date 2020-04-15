@@ -88,8 +88,8 @@ let questions: Question[] =
 	},
 	{
 		type: "confirm",
-		name: "joinsChambers",
-		message: "Does your gadget join multi-user chambers?",
+		name: "joinsRooms",
+		message: "Does your gadget host multi-user rooms?",
 		default: false
 	},
 	{
@@ -476,7 +476,7 @@ interface MyAnswers
 	width?: number;
 	height?: number;
 	startsGadgets: boolean;
-	joinsChambers: boolean;
+	joinsRooms: boolean;
 	wantsVSCode: boolean;
 }
 
@@ -503,9 +503,9 @@ async function main()
 	{
 		gadgetManifest.permissions.push( Permission.Master );
 	}
-	if( answers.joinsChambers )
+	if( answers.joinsRooms )
 	{
-		gadgetManifest.permissions.push( Permission.Chamber );
+		gadgetManifest.permissions.push( Permission.Room );
 	}
 
 	if( !fs.existsSync( "./src" ) )

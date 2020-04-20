@@ -5,7 +5,7 @@ import * as path from 'path';
 import { Question, Answers } from 'inquirer';
 import * as readline from 'readline';
 import inquirer = require('inquirer');
-import {AvGadgetManifest, Permission} from '@aardvarkxr/aardvark-shared';
+import { AardvarkManifest, Permission } from '@aardvarkxr/aardvark-shared';
 import ValidatePackageName = require( 'validate-npm-package-name' );
 
 let pkginfo = require( 'pkginfo' )( module, 'version', 'dependencies' );
@@ -100,14 +100,24 @@ let questions: Question[] =
 	},
 ];
 
-let templateGadgetManifest:AvGadgetManifest =
+let templateGadgetManifest:AardvarkManifest =
 {
-	"name" : "Test Panel",
-	"permissions" : [ Permission.SceneGraph ],
-	width: 1024,
-	height: 1024,
-	"model" : "models/placeholder.glb",
-	startAutomatically: false,
+	xr_type: "aardvark-gadget@" + avsharedVersion,
+	name: "Test Panel",
+	icons:
+	[
+		{
+			src: "models/placeholder.glb",
+			type: "model/gltf-binary"
+		}
+	],
+	aardvark:
+	{
+		permissions: [ Permission.SceneGraph ],
+		browserWidth: 1024,
+		browserHeight: 1024,	
+		startAutomatically: false,
+	},
 }
 
 let templateTsConfig: any =
@@ -264,7 +274,7 @@ module.exports =
 			new CopyPlugin(
 				[
 					{ from: './src/styles.css', to: 'styles.css' },
-					{ from: './src/gadget_manifest.json', to: 'gadget_manifest.json' },
+					{ from: './src/manifest.webmanifest', to: 'manifest.webmanifest' },
 					{ from: './src/models/placeholder.glb', to: 'models/placeholder.glb' },
 				]
 				),
@@ -487,25 +497,26 @@ async function main()
 
 	console.log( `Using @aardvarkxr/aardvark-react@${ avreactVersion } and @aardvarkxr/aardvark-shared@${ avsharedVersion }` );
 
-	let gadgetManifest = Object.assign( {}, templateGadgetManifest );
+	let gadgetManifest: AardvarkManifest = { ...templateGadgetManifest };
 	gadgetManifest.name = answers.gadgetName;
 	if( answers.usesPanels )
 	{
-		gadgetManifest.width = answers.width as number;
-		gadgetManifest.height = answers.height as number;
+		gadgetManifest.aardvark.browserWidth = answers.width as number;
+		gadgetManifest.aardvark.browserHeight = answers.height as number;
 	}
 	else
 	{
-		gadgetManifest.width = 16;
-		gadgetManifest.height = 16;
+		gadgetManifest.aardvark.browserWidth = 16;
+		gadgetManifest.aardvark.browserHeight = 16;
 	}
+
 	if( answers.startsGadgets )
 	{
-		gadgetManifest.permissions.push( Permission.Master );
+		gadgetManifest.aardvark.permissions.push( Permission.Master );
 	}
 	if( answers.joinsRooms )
 	{
-		gadgetManifest.permissions.push( Permission.Room );
+		gadgetManifest.aardvark.permissions.push( Permission.Room );
 	}
 
 	if( !fs.existsSync( "./src" ) )
@@ -514,10 +525,10 @@ async function main()
 		console.log( "Created ./src" );
 	}
 
-	if( !fs.existsSync( "./src/gadget_manifest.json" ) )
+	if( !fs.existsSync( "./src/manifest.webmanifest" ) )
 	{
-		fs.writeFileSync( "./src/gadget_manifest.json", JSON.stringify( gadgetManifest, undefined, "\t" ) );
-		console.log( "Added gadget_manifest.json" );
+		fs.writeFileSync( "./src/manifest.webmanifest", JSON.stringify( gadgetManifest, undefined, "\t" ) );
+		console.log( "Added manifest.webmanifest" );
 	}
 
 	if( !fs.existsSync( "./tsconfig.json" ) )

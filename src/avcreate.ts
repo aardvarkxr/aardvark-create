@@ -88,12 +88,6 @@ let questions: Question[] =
 	},
 	{
 		type: "confirm",
-		name: "joinsRooms",
-		message: "Does your gadget host multi-user rooms?",
-		default: false
-	},
-	{
-		type: "confirm",
 		name: "wantsVSCode",
 		message: "Do you want to debug with VS Code?",
 		default: true
@@ -130,7 +124,7 @@ let templateTsConfig: any =
 		"jsx": "react",
 		"outDir": "dist",
 		"rootDir": "src",
-		"strict": true,
+		"strict": false,
 		"types": ["node"],
 		"experimentalDecorators": true,
 		"allowSyntheticDefaultImports": true,
@@ -354,14 +348,13 @@ let templateLaunchJson =
 }`;
 
 let templateMainTsx=
-`import * as React from 'react';
-import  * as ReactDOM from 'react-dom';
-
+`import { AvGadget, AvPanel, AvStandardGrabbable, AvTransform, HighlightType } from '@aardvarkxr/aardvark-react';
+import { EAction, EHand, g_builtinModelBox, InitialInterfaceLock } from '@aardvarkxr/aardvark-shared';
 import bind from 'bind-decorator';
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 
-import { AvGadget, AvTransform, AvPanel, AvGrabbable, HighlightType, GrabResponse, AvSphereHandle } from '@aardvarkxr/aardvark-react';
-import { EndpointAddr, AvGrabEvent, endpointAddrToString } from '@aardvarkxr/aardvark-shared';
-
+const k_TestPanelInterface = "test_panel_counter@1";
 
 interface TestPanelState
 {
@@ -374,9 +367,16 @@ interface TestSettings
 	count: number;
 }
 
+interface TestPanelEvent
+{
+	type: "increment" | "set_count";
+	count?: number;
+}
+
 class TestPanel extends React.Component< {}, TestPanelState >
 {
-	private m_panelId?: EndpointAddr;
+	private m_actionListeners: number[];
+	private m_grabbableRef = React.createRef<AvStandardGrabbable>();
 
 	constructor( props: any )
 	{
@@ -386,32 +386,68 @@ class TestPanel extends React.Component< {}, TestPanelState >
 			count: 0,
 			grabbableHighlight: HighlightType.None,
 		};
+	}
 
-		AvGadget.instance().registerForSettings( this.onSettingsReceived );
+	public componentDidMount()
+	{
+		if( !AvGadget.instance().isRemote )
+		{
+			this.m_actionListeners = 
+			[
+				AvGadget.instance().listenForActionStateWithComponent( EHand.Invalid, EAction.A, this ),
+				AvGadget.instance().listenForActionStateWithComponent( EHand.Invalid, EAction.B, this ),
+				AvGadget.instance().listenForActionStateWithComponent( EHand.Invalid, EAction.Squeeze, this ),
+				AvGadget.instance().listenForActionStateWithComponent( EHand.Invalid, EAction.Grab, this ),
+				AvGadget.instance().listenForActionStateWithComponent( EHand.Invalid, EAction.Detach, this ),
+			];
+
+			AvGadget.instance().registerForSettings( this.onSettingsReceived );
+		}
+		else
+		{
+			let params = AvGadget.instance().findInitialInterface( k_TestPanelInterface )?.params as TestSettings;
+			this.onSettingsReceived( params );			
+		}
+	}
+
+	public componentWillUnmount()
+	{
+		if( !AvGadget.instance().isRemote )
+		{
+			for( let listener of this.m_actionListeners )
+			{
+				AvGadget.instance().unlistenForActionState( listener );
+			}
+
+			this.m_actionListeners = [];
+		}
 	}
 
 	@bind public incrementCount()
 	{
-		this.setState( { count: this.state.count + 1 } );
-
-		let newSettings: TestSettings = { count: this.state.count + 1 };
-		AvGadget.instance().saveSettings( newSettings );
-	}
-
-	@bind public onHighlightGrabbable( highlight: HighlightType )
-	{
-		this.setState( { grabbableHighlight: highlight } );
-	}
-
-	@bind public onGrabRequest( grabRequest: AvGrabEvent ): Promise< GrabResponse >
-	{
-		// this is totally unnecessary, but a good test of the plumbing.
-		let response: GrabResponse =
+		if( AvGadget.instance().isRemote )
 		{
-			allowed: true,
-		};
-		return Promise.resolve( response );
+			let e: TestPanelEvent = { type: "increment" };
+			this.m_grabbableRef.current?.sendRemoteEvent( e, true );
+		}
+		else
+		{
+			this.setState( ( oldState ) => 
+				{ 
+					return { ...oldState, count: oldState.count + 1 };
+				} );
+		}
 	}
+
+	public componentDidUpdate()
+	{
+		if( !AvGadget.instance().isRemote )
+		{
+			let e: TestPanelEvent = { type: "set_count", count: this.state.count };
+			this.m_grabbableRef.current?.sendRemoteEvent( e, true );
+		}
+	}
+
 
 	@bind public onSettingsReceived( settings: TestSettings )
 	{
@@ -421,58 +457,104 @@ class TestPanel extends React.Component< {}, TestPanelState >
 		}
 	}
 
+	@bind
+	private onRemoteEvent( event: TestPanelEvent )
+	{
+		switch( event.type )
+		{
+			case "increment":
+				if( AvGadget.instance().isRemote )
+				{
+					console.log( "Received unexpected increment event on remote" );
+				}
+				else
+				{
+					this.incrementCount();
+				}
+				break;
+			
+			case "set_count":
+				if( !AvGadget.instance().isRemote )
+				{
+					console.log( "Received unexpected set_count event on master" );
+				}
+				else
+				{
+					this.setState( { count: event.count } );
+				}
+				break;		
+		}
+	}
+
+	public renderActionStateLabel( action: EAction )
+	{
+		if( AvGadget.instance().getActionStateForHand( EHand.Invalid, action ) )
+			return <div className="Label">{ EAction[ action ] }: TRUE</div>;
+		else
+			return <div className="Label">{ EAction[ action ] }: false</div>;
+	}
+
+	public renderRemote()
+	{
+		return (
+			<>
+				<div className="Label">Count: { this.state.count }</div>
+				<div className="Label">This gadget is owned by somebody else</div>
+				<div className="Button" onMouseDown={ this.incrementCount }>
+					Increment count...
+				</div> 
+			</>
+		);
+	}
+
+	public renderLocal()
+	{
+		return <>
+				<div className="Label">Count: { this.state.count }</div>
+				<div className="Label">This gadget is owned by me</div>
+				<div className="Button" onMouseDown={ this.incrementCount }>
+					Increment count...
+				</div> 
+				{ this.renderActionStateLabel( EAction.A ) }
+				{ this.renderActionStateLabel( EAction.B ) }
+				{ this.renderActionStateLabel( EAction.Squeeze ) }
+				{ this.renderActionStateLabel( EAction.Grab ) }
+				{ this.renderActionStateLabel( EAction.Detach ) }
+			</>
+	}
+
 	public render()
 	{
-		let sDivClasses:string;
-		let scale = 0.2;
-		switch( this.state.grabbableHighlight )
+		let sDivClasses:string = "FullPage";
+
+		let remoteInitLocks: InitialInterfaceLock[] = [];
+
+		if( !AvGadget.instance().isRemote )
 		{
-			default:
-			case HighlightType.None:
-				sDivClasses = "FullPage NoGrabHighlight";
-				break;
-
-			case HighlightType.InRange:
-				sDivClasses = "FullPage InRangeHighlight";
-				break;
-
-			case HighlightType.Grabbed:
-				sDivClasses = "FullPage GrabbedHighlight";
-				break;
-
-			case HighlightType.InHookRange:
-				sDivClasses = "FullPage GrabbedHighlight";
-				break;
-		
+			remoteInitLocks.push( {
+				iface: k_TestPanelInterface,
+				receiver: null,
+				params: 
+				{
+					count: this.state.count,
+				}
+			} );
 		}
 
 		return (
 			<div className={ sDivClasses } >
 				<div>
-					<AvGrabbable updateHighlight={ this.onHighlightGrabbable }
-						onGrabRequest={ this.onGrabRequest }
-						dropOnHooks={ true }>
-						<AvSphereHandle radius={0.1} />
-						
-						<AvTransform uniformScale={ scale }>
-							<AvPanel interactive={true}
-								onIdAssigned={ (id: EndpointAddr) => { this.m_panelId = id } }/>
+					<AvStandardGrabbable modelUri={ g_builtinModelBox } modelScale={ 0.03 } remoteGadgetCallback={ this.onRemoteEvent }
+						modelColor="lightblue" useInitialParent={ true } remoteInterfaceLocks={ remoteInitLocks } ref={ this.m_grabbableRef }>
+						<AvTransform translateY={ 0.08 } >
+							<AvPanel interactive={true} widthInMeters={ 0.1 }/>
 						</AvTransform>
-					</AvGrabbable>
+					</AvStandardGrabbable>
 				</div>
-				<div className="Label">Count: { this.state.count }</div>
-				<div className="Button" onMouseDown={ this.incrementCount }>
-					Click Me!
-					</div> 
-
-				{ this.m_panelId && 
-					<div>
-						My ID is { endpointAddrToString( this.m_panelId as EndpointAddr ) }
-					</div>
-				}
-			</div>
-		)
+				{ AvGadget.instance().isRemote ? this.renderRemote() : this.renderLocal() }
+			</div> );
 	}
+
 }
 
 ReactDOM.render( <TestPanel/>, document.getElementById( "root" ) );
@@ -486,7 +568,6 @@ interface MyAnswers
 	width?: number;
 	height?: number;
 	startsGadgets: boolean;
-	joinsRooms: boolean;
 	wantsVSCode: boolean;
 }
 
@@ -513,10 +594,6 @@ async function main()
 	if( answers.startsGadgets )
 	{
 		gadgetManifest.aardvark.permissions.push( Permission.Master );
-	}
-	if( answers.joinsRooms )
-	{
-		gadgetManifest.aardvark.permissions.push( Permission.Room );
 	}
 
 	if( !fs.existsSync( "./src" ) )

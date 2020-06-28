@@ -12,8 +12,8 @@
     "src/placeholder.glb"
   ],
   "dependencies": {
-    "@aardvarkxr/aardvark-react": "^0.8.1",
-    "@aardvarkxr/aardvark-shared": "^0.8.1",
+    "@aardvarkxr/aardvark-react": "^0.10.5",
+    "@aardvarkxr/aardvark-shared": "^0.10.5",
     "inquirer": "^7.0.0",
     "path": "^0.12.7",
     "pkginfo": "^0.4.1",

@@ -161,6 +161,7 @@ let templatePackageJson: any =
 	  "mini-css-extract-plugin": "^0.7.0",
 	  "npm": "^6.12.0",
 	  "source-map-loader": "^0.2.4",
+	  "style-loader": "^1.2.1",
 	  "ts-loader": "^6.0.4",
 	  "tslib": "^1.10.0",
 	  "typescript": "^3.5.2",
@@ -171,8 +172,8 @@ let templatePackageJson: any =
 	  "@aardvarkxr/aardvark-react": avreactVersion,
 	  "@aardvarkxr/aardvark-shared": avsharedVersion,
 	  "bind-decorator": "^1.0.11",
-	  "react": "^16.8.6",
-	  "react-dom": "^16.8.6"
+	  "react": "^16.13.1",
+	  "react-dom": "^16.13.1"
 	}
 }
   
@@ -348,8 +349,8 @@ let templateLaunchJson =
 }`;
 
 let templateMainTsx=
-`import { AvGadget, AvPanel, AvStandardGrabbable, AvTransform, HighlightType } from '@aardvarkxr/aardvark-react';
-import { EAction, EHand, g_builtinModelBox, InitialInterfaceLock } from '@aardvarkxr/aardvark-shared';
+`import { AvGadget, AvPanel, AvStandardGrabbable, AvTransform, HighlightType, DefaultLanding } from '@aardvarkxr/aardvark-react';
+import { EAction, EHand, g_builtinModelBox, InitialInterfaceLock, Av } from '@aardvarkxr/aardvark-shared';
 import bind from 'bind-decorator';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -373,7 +374,7 @@ interface TestPanelEvent
 	count?: number;
 }
 
-class TestPanel extends React.Component< {}, TestPanelState >
+class MyGadget extends React.Component< {}, TestPanelState >
 {
 	private m_actionListeners: number[];
 	private m_grabbableRef = React.createRef<AvStandardGrabbable>();
@@ -557,7 +558,8 @@ class TestPanel extends React.Component< {}, TestPanelState >
 
 }
 
-ReactDOM.render( <TestPanel/>, document.getElementById( "root" ) );
+let main = Av() ? <MyGadget/> : <DefaultLanding/>
+ReactDOM.render( main, document.getElementById( "root" ) );
 `;
 
 interface MyAnswers

@@ -12,11 +12,13 @@
     "src/placeholder.glb"
   ],
   "dependencies": {
-    "@aardvarkxr/aardvark-react": "^0.10.9",
-    "@aardvarkxr/aardvark-shared": "^0.10.9",
+    "@aardvarkxr/aardvark-react": "^0.14.1",
+    "@aardvarkxr/aardvark-shared": "^0.14.1",
     "inquirer": "^7.0.0",
     "path": "^0.12.7",
     "pkginfo": "^0.4.1",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
     "tslib": "^1.10.0",
     "validate-npm-package-name": "^3.0.0"
   },

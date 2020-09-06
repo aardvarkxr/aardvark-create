@@ -1,6 +1,6 @@
 {
   "name": "@aardvarkxr/create",
-  "version": "0.10.9",
+  "version": "0.14.1",
   "description": "Gadget project create script for Aardvark",
   "repository": "https://github.com/aardvarkxr/aardvark-create.git",
   "main": "./lib/avcreate.js",

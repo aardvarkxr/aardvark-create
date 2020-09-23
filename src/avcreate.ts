@@ -143,7 +143,8 @@ let templatePackageJson: any =
 	"main": "index.js",
 	"scripts": {
 	  "build": "webpack --env=production",
-	  "start": "webpack --env=dev --watch --progress"
+	  "start": "webpack --env=dev --watch --progress",
+	  "dev-server": "http-server ./dist -p 8080 -c-1 --cors"
 	},
 	"keywords": [],
 	"author": "",
@@ -158,6 +159,7 @@ let templatePackageJson: any =
 	  "copy-webpack-plugin": "^5.0.3",
 	  "css-loader": "^3.0.0",
 	  "html-webpack-plugin": "^3.2.0",
+	  "http-server": "^0.12.3",
 	  "mini-css-extract-plugin": "^0.7.0",
 	  "npm": "^6.12.0",
 	  "source-map-loader": "^0.2.4",

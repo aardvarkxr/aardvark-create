@@ -230,7 +230,7 @@ let templateHtml=
   <head>
     <meta charset="UTF-8">
     <title>GADGET_NAME</title>
-	<link href="styles.css" rel="stylesheet">
+	<link href="styles.css?<%= htmlWebpackPlugin.options.now %>" rel="stylesheet">
   </head>
 
   <body>
@@ -255,7 +255,7 @@ module.exports =
 
 		output:
 		{
-			filename: '[name].[contenthash].js',
+			filename: '[name].js',
 			path: path.resolve( __dirname, './dist' ),
 		},
 
@@ -265,7 +265,8 @@ module.exports =
 				{
 					hash: true,
 					filename: "./index.html",
-					template: "./src/index.html"
+					template: "./src/index.html",
+					now: Date.now()
 				}
 			),
 			new CopyPlugin(

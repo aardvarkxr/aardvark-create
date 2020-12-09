@@ -352,7 +352,7 @@ let templateLaunchJson =
 }`;
 
 let templateMainTsx=
-`import { AvGadget, AvPanel, AvStandardGrabbable, AvTransform, HighlightType, DefaultLanding, GrabbableStyle } from '@aardvarkxr/aardvark-react';
+`import { AvGadget, AvPanel, AvStandardGrabbable, AvTransform, HighlightType, DefaultLanding, GrabbableStyle, renderAardvarkRoot } from '@aardvarkxr/aardvark-react';
 import { EAction, EHand, g_builtinModelBox, InitialInterfaceLock, Av } from '@aardvarkxr/aardvark-shared';
 import bind from 'bind-decorator';
 import * as React from 'react';
@@ -561,8 +561,7 @@ class MyGadget extends React.Component< {}, TestPanelState >
 
 }
 
-let main = Av() ? <MyGadget/> : <DefaultLanding/>
-ReactDOM.render( main, document.getElementById( "root" ) );
+renderAardvarkRoot( "root", <MyGadget/> );
 `;
 
 interface MyAnswers

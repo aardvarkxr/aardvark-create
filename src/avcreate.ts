@@ -550,8 +550,8 @@ class MyGadget extends React.Component< {}, TestPanelState >
 				<div>
 					<AvStandardGrabbable modelUri={ g_builtinModelBox } modelScale={ 0.03 } remoteGadgetCallback={ this.onRemoteEvent }
 						modelColor="lightblue" style={ GrabbableStyle.Gadget } remoteInterfaceLocks={ remoteInitLocks } ref={ this.m_grabbableRef }>
-						<AvTransform translateY={ 0.08 } >
-							<AvPanel interactive={true} widthInMeters={ 0.1 }/>
+						<AvTransform translateY={ 0.16 } >
+							<AvPanel interactive={true} widthInMeters={ 0.2 }/>
 						</AvTransform>
 					</AvStandardGrabbable>
 				</div>

@@ -2,7 +2,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { Question, Answers } from 'inquirer';
+import { Question, ListQuestion, Answers } from 'inquirer';
 import * as readline from 'readline';
 import inquirer = require('inquirer');
 import { AardvarkManifest, Permission } from '@aardvarkxr/aardvark-shared';
@@ -19,7 +19,14 @@ console.log( `Aardvark gadget project create script (${ module.exports.version }
 let avreactVersion = module.exports.dependencies["@aardvarkxr/aardvark-react" ];
 let avsharedVersion = module.exports.dependencies["@aardvarkxr/aardvark-shared" ];
 
-let questions: Question[] =
+enum SampleType
+{
+	Panel = "panel",
+	Empty = "empty",
+}
+
+
+let questions =
 [
 	{
 		type: "input",
@@ -55,30 +62,20 @@ let questions: Question[] =
 		}
 	},
 	{
-		type: "confirm",
-		name: "usesPanels",
-		message: "Does your gadget use panels (i.e. 2D quads in the world)?",
-		default: true
-	},
-	{
-		type: "number",
-		name: "width",
-		message: "Texture width",
-		default: 1024,
-		when: ( answers: Answers ) =>
-		{
-			return answers.usesPanels;
-		}
-	},
-	{
-		type: "number",
-		name: "height",
-		message: "Texture height",
-		default: 1024,
-		when: ( answers: Answers ) =>
-		{
-			return answers.usesPanels;
-		}
+		type: "list",
+		name: "sampleType",
+		message: "What kind of Aardvark gadget would you like to start with?",
+		choices: 
+		[
+			{
+				name: "Panel Sample",
+				value: SampleType.Panel,
+			},
+			{
+				name: "Empty Project",
+				value: SampleType.Empty,
+			}
+		]
 	},
 	{
 		type: "confirm",
@@ -351,7 +348,7 @@ let templateLaunchJson =
 	]
 }`;
 
-let templateMainTsx=
+let templateMainTsx_PanelSample=
 `import { AvGadget, AvPanel, AvStandardGrabbable, AvTransform, HighlightType, DefaultLanding, GrabbableStyle, renderAardvarkRoot } from '@aardvarkxr/aardvark-react';
 import { EAction, EHand, g_builtinModelBox, InitialInterfaceLock, Av } from '@aardvarkxr/aardvark-shared';
 import bind from 'bind-decorator';
@@ -564,13 +561,42 @@ class MyGadget extends React.Component< {}, TestPanelState >
 renderAardvarkRoot( "root", <MyGadget/> );
 `;
 
+let templateMainTsx_Empty=
+`import { AvStandardGrabbable, GrabbableStyle, renderAardvarkRoot } from '@aardvarkxr/aardvark-react';
+import { g_builtinModelBox } from '@aardvarkxr/aardvark-shared';
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
+
+class MyGadget extends React.Component< {}, {} >
+{
+	constructor( props: any )
+	{
+		super( props );
+		this.state = {};
+	}
+
+	public render()
+	{
+		return (
+			<AvStandardGrabbable modelUri={ g_builtinModelBox } modelScale={ 0.03 } 
+				modelColor="lightblue" style={ GrabbableStyle.Gadget } remoteInterfaceLocks={ [] } >
+				{ 
+					/* gadget contents go here */ 
+				}
+			</AvStandardGrabbable>
+			);
+	}
+
+}
+
+renderAardvarkRoot( "root", <MyGadget/> );
+`;
+
 interface MyAnswers
 {
 	packageName: string;
 	gadgetName: string;
-	usesPanels: boolean;
-	width?: number;
-	height?: number;
+	sampleType: SampleType;
 	startsGadgets: boolean;
 	wantsVSCode: boolean;
 }
@@ -584,16 +610,24 @@ async function main()
 
 	let gadgetManifest: AardvarkManifest = { ...templateGadgetManifest };
 	gadgetManifest.name = answers.gadgetName;
-	if( answers.usesPanels )
+
+	let mainTemplate: string;
+	switch( answers.sampleType )
 	{
-		gadgetManifest.aardvark.browserWidth = answers.width as number;
-		gadgetManifest.aardvark.browserHeight = answers.height as number;
+		default:
+		case SampleType.Panel:
+			gadgetManifest.aardvark.browserWidth = 1024;
+			gadgetManifest.aardvark.browserHeight = 1024;
+			mainTemplate = templateMainTsx_PanelSample;
+			break;
+
+		case SampleType.Empty:
+			gadgetManifest.aardvark.browserWidth = 16;
+			gadgetManifest.aardvark.browserHeight = 16;
+			mainTemplate = templateMainTsx_Empty;
+			break;
 	}
-	else
-	{
-		gadgetManifest.aardvark.browserWidth = 16;
-		gadgetManifest.aardvark.browserHeight = 16;
-	}
+
 
 	if( answers.startsGadgets )
 	{
@@ -635,7 +669,7 @@ async function main()
 
 	if( !fs.existsSync( "./src/main.tsx" ) )
 	{
-		fs.writeFileSync( "./src/main.tsx", templateMainTsx );
+		fs.writeFileSync( "./src/main.tsx", mainTemplate );
 		console.log( "Added src/main.tsx" );
 	}
 
